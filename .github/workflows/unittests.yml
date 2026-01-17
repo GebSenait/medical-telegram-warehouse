@@ -90,26 +90,29 @@ jobs:
   docker-build:
     name: Build Docker Image
     runs-on: ubuntu-latest
-
+    
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-
+    
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
-
+    
     - name: Build Docker image
       uses: docker/build-push-action@v5
+      id: build
       with:
         context: .
         push: false
         tags: medical-telegram-warehouse:test
-        cache-from: type=registry,ref=medical-telegram-warehouse:buildcache
-        cache-to: type=inline
-
+        load: true
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+    
     - name: Validate Dockerfile
       run: |
         docker run --rm medical-telegram-warehouse:test python --version
+        docker run --rm medical-telegram-warehouse:test python -m pip list | grep -i telethon
         echo "✓ Docker image builds and runs successfully"
 
   security-scan:
