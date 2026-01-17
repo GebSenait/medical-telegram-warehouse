@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  telegram-scraper:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: medical-telegram-scraper
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+    environment:
+      - PYTHONUNBUFFERED=1
+    env_file:
+      - .env
+    restart: unless-stopped
+    networks:
+      - medical-warehouse-network
+
+networks:
+  medical-warehouse-network:
+    driver: bridge
+

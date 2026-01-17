@@ -1,0 +1,38 @@
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg
+*.egg-info
+dist
+build
+
+# Virtual environments
+venv/
+ENV/
+env/
+.venv
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Data (don't copy into image, use volumes)
+data/
+logs/
+
+# Environment (will be provided via docker-compose or COPY)
+.env.local
+
+# OS
+.DS_Store
+Thumbs.db
+

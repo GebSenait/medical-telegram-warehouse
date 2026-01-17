@@ -1,0 +1,7 @@
+{
+  "dry_run": true,
+  "channels": [
+    "CheMed"
+  ],
+  "sample_files": 1
+}

@@ -1,0 +1,32 @@
+# ============================================================================
+# Python Environment Setup & Installation Instructions
+# ============================================================================
+#
+# 1. Create Virtual Environment:
+#    Windows:  python -m venv venv
+#    Linux/Mac: python3 -m venv venv
+#
+# 2. Activate Virtual Environment:
+#    Windows:  venv\Scripts\activate
+#    Linux/Mac: source venv/bin/activate
+#
+# 3. Install Dependencies:
+#    pip install -r requirements.txt
+#
+# ============================================================================
+
+# Core Telegram Library
+telethon==1.34.0
+
+# Data Processing
+python-dotenv==1.0.0
+
+# Async File I/O
+aiofiles==23.2.1
+
+# Utilities
+python-dateutil==2.8.2
+
+# Async HTTP (included with Telethon but explicit for clarity)
+aiohttp==3.9.1
+
