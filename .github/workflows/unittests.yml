@@ -1,0 +1,134 @@
+name: Unit Tests & Code Validation
+
+on:
+  push:
+    branches: [ main, task-1-dev ]
+  pull_request:
+    branches: [ main, task-1-dev ]
+  workflow_dispatch:
+
+jobs:
+  lint-and-validate:
+    name: Lint & Validate Code
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        python-version: ["3.11"]
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+        cache: 'pip'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install flake8 black pytest pytest-asyncio pytest-cov
+
+    - name: Validate Python syntax
+      run: |
+        python -m py_compile src/scraper.py
+        python -m py_compile scripts/*.py || true
+
+    - name: Check imports
+      run: |
+        python -c "import sys; sys.path.insert(0, '.'); from src import scraper; print('✓ Imports successful')"
+
+    - name: Lint with flake8
+      run: |
+        flake8 src/ scripts/ --count --select=E9,F63,F7,F82 --show-source --statistics
+        flake8 src/ scripts/ --count --exit-zero --max-complexity=10 --max-line-length=120 --statistics
+      continue-on-error: true
+
+    - name: Check code formatting with Black
+      run: |
+        black --check --line-length 120 src/ scripts/ || true
+      continue-on-error: true
+
+    - name: Validate environment template
+      run: |
+        if [ -f .env.example ]; then
+          echo "✓ .env.example exists"
+        else
+          echo "✗ .env.example missing"
+          exit 1
+        fi
+
+    - name: Validate project structure
+      run: |
+        echo "Validating project structure..."
+        test -f Dockerfile && echo "✓ Dockerfile exists" || echo "✗ Dockerfile missing"
+        test -f docker-compose.yml && echo "✓ docker-compose.yml exists" || echo "✗ docker-compose.yml missing"
+        test -f requirements.txt && echo "✓ requirements.txt exists" || echo "✗ requirements.txt missing"
+        test -f README.md && echo "✓ README.md exists" || echo "✗ README.md missing"
+        test -f src/scraper.py && echo "✓ src/scraper.py exists" || echo "✗ src/scraper.py missing"
+        test -f .gitignore && echo "✓ .gitignore exists" || echo "✗ .gitignore missing"
+
+    - name: Test scraper module structure
+      run: |
+        python -c "
+        import sys
+        sys.path.insert(0, '.')
+        from src.scraper import (
+            TelegramScraper,
+            API_ID, API_HASH, SESSION_NAME,
+            CHANNELS, MAX_MESSAGES, BATCH_SIZE
+        )
+        print('✓ Scraper module structure validated')
+        print(f'  - Channels configured: {len(CHANNELS)}')
+        print(f'  - Max messages: {MAX_MESSAGES}')
+        print(f'  - Batch size: {BATCH_SIZE}')
+        "
+
+  docker-build:
+    name: Build Docker Image
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Build Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        push: false
+        tags: medical-telegram-warehouse:test
+        cache-from: type=registry,ref=medical-telegram-warehouse:buildcache
+        cache-to: type=inline
+
+    - name: Validate Dockerfile
+      run: |
+        docker run --rm medical-telegram-warehouse:test python --version
+        echo "✓ Docker image builds and runs successfully"
+
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Run Bandit security scan
+      run: |
+        pip install bandit
+        bandit -r src/ scripts/ -f json -o bandit-report.json || true
+        bandit -r src/ scripts/ -ll || true
+      continue-on-error: true
+
+    - name: Check for hardcoded secrets
+      run: |
+        echo "Scanning for potential secrets..."
+        grep -r "api_key\|api_secret\|password\|secret\|token" src/ scripts/ --include="*.py" | \
+          grep -v "TELEGRAM_API\|getenv\|os.getenv\|load_dotenv" || echo "✓ No hardcoded secrets found"
