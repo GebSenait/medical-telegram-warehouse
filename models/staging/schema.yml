@@ -1,0 +1,32 @@
+version: 2
+
+models:
+  - name: stg_telegram_messages
+    description: "Staging model for raw Telegram messages with data cleaning, type casting, and derived fields"
+    columns:
+      - name: message_id
+        description: "Unique Telegram message ID"
+        tests:
+          - not_null
+      - name: channel_name
+        description: "Name of the Telegram channel"
+        tests:
+          - not_null
+      - name: message_date
+        description: "Timestamp when the message was posted"
+        tests:
+          - not_null
+      - name: message_text
+        description: "Text content of the message"
+      - name: views
+        description: "Number of views for the message"
+      - name: forwards
+        description: "Number of times the message was forwarded"
+      - name: has_media
+        description: "Boolean flag indicating if message contains media"
+      - name: image_path
+        description: "Relative path to downloaded image file"
+      - name: message_length
+        description: "Derived field: character length of message_text"
+      - name: has_image
+        description: "Derived field: boolean indicating if image_path is not null"

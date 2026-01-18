@@ -1,6 +1,27 @@
 version: '3.8'
 
 services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: medical-warehouse-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-medical_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-medical_pass}
+      POSTGRES_DB: ${POSTGRES_DB:-medical_warehouse}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "${POSTGRES_PORT:-5433}:5432"
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-medical_user}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - medical-warehouse-network
+
   telegram-scraper:
     build:
       context: .
@@ -14,10 +35,16 @@ services:
     env_file:
       - .env
     restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
     networks:
       - medical-warehouse-network
+
+volumes:
+  postgres_data:
+
 
 networks:
   medical-warehouse-network:
     driver: bridge
-
