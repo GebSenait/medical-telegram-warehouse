@@ -30,3 +30,8 @@ python-dateutil==2.8.2
 # Async HTTP (included with Telethon but explicit for clarity)
 aiohttp==3.9.1
 
+# Database
+psycopg2-binary==2.9.9
+
+# dbt
+dbt-postgres==1.7.15

@@ -1,0 +1,7 @@
+# dbt packages file
+# Run: dbt deps to install packages
+# For now, we use custom macros instead of external packages
+
+# packages:
+#   - package: dbt-labs/dbt_utils
+#     version: 1.1.1

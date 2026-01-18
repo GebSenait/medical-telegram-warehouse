@@ -1,0 +1,28 @@
+version: 2
+
+sources:
+  - name: raw
+    description: "Raw data schema containing unprocessed Telegram data"
+    schema: raw
+    tables:
+      - name: telegram_messages
+        description: "Raw Telegram messages loaded from JSON files"
+        columns:
+          - name: message_id
+            description: "Unique Telegram message ID"
+          - name: channel_name
+            description: "Name of the Telegram channel"
+          - name: message_date
+            description: "Timestamp when the message was posted"
+          - name: message_text
+            description: "Text content of the message"
+          - name: views
+            description: "Number of views for the message"
+          - name: forwards
+            description: "Number of times the message was forwarded"
+          - name: has_media
+            description: "Boolean flag indicating if message contains media"
+          - name: image_path
+            description: "Relative path to downloaded image file"
+          - name: raw_data
+            description: "Complete raw message data stored as JSONB"

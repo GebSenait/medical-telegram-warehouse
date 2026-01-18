@@ -57,3 +57,10 @@ logs/**/*.log
 # OS
 .DS_Store
 Thumbs.db
+
+# dbt
+target/
+dbt_packages/
+profiles.yml
+*.profiles.yml
+.user.yml
