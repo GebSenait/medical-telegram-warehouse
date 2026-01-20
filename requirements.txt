@@ -47,3 +47,7 @@ uvicorn[standard]==0.27.0
 sqlalchemy==2.0.25
 pydantic==2.5.3
 pydantic-settings==2.1.0
+
+# Orchestration
+dagster==1.7.0
+dagster-webserver==1.7.0

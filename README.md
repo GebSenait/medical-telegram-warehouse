@@ -27,6 +27,11 @@
   - [API Endpoints](#api-endpoints)
   - [Query Logic & Analysis](#query-logic--analysis)
   - [Results & Insights](#task-4-results--insights)
+- [Task 5: Pipeline Orchestration (Dagster)](#-task-5-pipeline-orchestration-dagster)
+  - [Implementation Details](#task-5-implementation-details)
+  - [Pipeline Design & DAG](#pipeline-design--dag)
+  - [Execution Steps](#task-5-execution-steps)
+  - [Monitoring Results & Insights](#task-5-monitoring-results--insights)
 - [Next Steps](#-next-steps)
 
 ---
@@ -81,6 +86,13 @@ The pipeline transforms raw Telegram data into a trusted analytical warehouse, e
          ▼
 ┌─────────────────┐
 │   FastAPI       │ ◄── Task-4 ✅
+└─────────────────┘
+         │
+         │ Orchestrate
+         ▼
+┌─────────────────┐
+│   Dagster       │ ◄── Task-5 ✅
+│  (Orchestration)│
 └─────────────────┘
 ```
 
@@ -852,12 +864,181 @@ uvicorn api.main:app --reload --host 0.0.0.0 --port 8000
 
 ---
 
+## 🔄 Task 5: Pipeline Orchestration (Dagster)
+
+**Status**: ✅ Complete
+**Branch**: `task-5-dev`
+**Implementation**: [See below](#task-5-implementation-details)
+
+### Task-5 Implementation Details
+
+Task-5 transforms all prior tasks into a **single automated production workflow** using **Dagster**, providing fintech-grade reliability, observability, and scheduling.
+
+**Components:**
+
+1. **Dagster Pipeline** (`pipeline.py`)
+   - 6 orchestrated ops with explicit dependencies
+   - Retry policies for resilience
+   - Comprehensive logging at each step
+   - Idempotent operations
+
+2. **Pipeline Ops:**
+   - `scrape_telegram_data`: Runs Task-1 scraper
+   - `load_raw_to_postgres`: Loads raw JSON into PostgreSQL
+   - `run_dbt_transformations`: Executes dbt star schema models
+   - `run_yolo_enrichment`: Runs YOLO object detection
+   - `load_yolo_to_postgres`: Loads YOLO results into PostgreSQL
+   - `run_dbt_yolo_model`: Creates enriched fact table
+
+3. **Scheduling** (`daily_pipeline_schedule`)
+   - Daily execution at 2:00 AM UTC
+   - Configurable via Dagster UI
+   - Run keys for idempotency
+
+4. **Observability:**
+   - Structured logging at each op
+   - Execution context tracking
+   - Failure alerts via Dagster UI
+   - Run history and metrics
+
+### Pipeline Design & DAG
+
+**Execution Flow:**
+
+```
+┌─────────────────────────┐
+│ scrape_telegram_data    │ ◄── Task-1: Extract
+└───────────┬─────────────┘
+            │
+            ▼
+┌─────────────────────────┐
+│ load_raw_to_postgres    │ ◄── Task-2: Load Raw
+└───────────┬─────────────┘
+            │
+            ▼
+┌─────────────────────────┐
+│ run_dbt_transformations  │ ◄── Task-2: Transform
+└───────────┬─────────────┘
+            │
+            ▼
+┌─────────────────────────┐
+│ run_yolo_enrichment     │ ◄── Task-3: YOLO Detection
+└───────────┬─────────────┘
+            │
+            ▼
+┌─────────────────────────┐
+│ load_yolo_to_postgres   │ ◄── Task-3: Load YOLO
+└───────────┬─────────────┘
+            │
+            ▼
+┌─────────────────────────┐
+│ run_dbt_yolo_model      │ ◄── Task-3: Enrich Fact
+└─────────────────────────┘
+```
+
+**Dependency Chain:**
+- Each op depends on the previous op's successful completion
+- Failures trigger retries (max 2 retries with 30-60s delay)
+- Pipeline stops on persistent failures (loud failure)
+
+**Idempotency:**
+- All ops are idempotent (safe to re-run)
+- Telegram scraper: Checks existing files before scraping
+- PostgreSQL loaders: Use UPSERT logic
+- dbt models: Incremental/materialized tables
+
+### Task-5 Execution Steps
+
+**1. Install Dagster:**
+
+```bash
+pip install -r requirements.txt
+```
+
+**2. Launch Dagster UI:**
+
+```bash
+dagster dev -f dagster_defs.py
+```
+
+**3. Access Dagster UI:**
+
+Open browser: [http://localhost:3000](http://localhost:3000)
+
+**4. Execute Pipeline:**
+
+- **Manual Execution**: Click "Launch Run" in Dagster UI
+- **Scheduled Execution**: Pipeline runs daily at 2:00 AM UTC
+- **API Execution**: Use Dagster GraphQL API
+
+**5. Monitor Execution:**
+
+- View run status in Dagster UI
+- Inspect logs per op
+- Check execution metrics
+- Review failure alerts
+
+**6. Validate Results:**
+
+- Check PostgreSQL tables are updated
+- Verify dbt models are refreshed
+- Confirm YOLO detections are loaded
+- Test FastAPI endpoints return latest data
+
+### Task-5 Monitoring Results & Insights
+
+**Pipeline Metrics:**
+
+- **Execution Time**: ~5-15 minutes (depends on data volume)
+- **Success Rate**: Monitored via Dagster UI
+- **Failure Points**: Logged with full context
+- **Retry Behavior**: Automatic retries on transient failures
+
+**Observability Features:**
+
+1. **Structured Logging:**
+   - Each op logs start/completion
+   - Error messages with full context
+   - Subprocess stdout/stderr captured
+
+2. **Execution Tracking:**
+   - Run keys for idempotency
+   - Tags for filtering runs
+   - Timestamps for all operations
+
+3. **Failure Handling:**
+   - Retry policies on transient errors
+   - Loud failures on persistent errors
+   - Full error context in logs
+
+4. **Scheduling:**
+   - Daily schedule at 2:00 AM UTC
+   - Configurable via Dagster UI
+   - Run history tracking
+
+**Business Value:**
+
+1. **Reliability**: Automated execution reduces manual errors
+2. **Observability**: Full visibility into pipeline health
+3. **Scalability**: Easy to add new ops or modify dependencies
+4. **Maintainability**: Clear separation of concerns per op
+5. **Production-Ready**: Fintech-grade orchestration standards
+
+**Full Documentation**: See [Pipeline Documentation](docs/task-5-pipeline-documentation.md)
+
+---
+
 ## 📝 Next Steps
 
-1. **Task-5** (Future): Real-time dashboards
+1. **Enhanced Monitoring**:
+   - Integrate with monitoring tools (Datadog, Prometheus)
+   - Set up alerting for pipeline failures
+   - Create dashboards for pipeline metrics
+
+2. **Real-time Dashboards**:
    - Connect BI tools to FastAPI endpoints
    - Build interactive dashboards
-   - Set up monitoring and alerting
+   - Set up data freshness monitoring
 
 ---
 
@@ -894,7 +1075,7 @@ uvicorn api.main:app --reload --host 0.0.0.0 --port 8000
 **Project**: Medical Telegram Warehouse
 **Organization**: Kara Solutions (Ethiopia)
 **Architecture**: Modern ELT Pipeline
-**Status**: Task-1 ✅ | Task-2 ✅ | Task-3 ✅ | Task-4 ✅
+**Status**: Task-1 ✅ | Task-2 ✅ | Task-3 ✅ | Task-4 ✅ | Task-5 ✅
 
 ---
 
