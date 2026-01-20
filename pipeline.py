@@ -21,7 +21,7 @@ from dagster import (
     op,
     job,
     schedule,
-    DefaultSensorStatus,
+    DefaultScheduleStatus,
     RunRequest,
     SkipReason,
     ScheduleEvaluationContext,
@@ -461,7 +461,7 @@ def medical_telegram_warehouse_pipeline():
 @schedule(
     job=medical_telegram_warehouse_pipeline,
     cron_schedule="0 2 * * *",  # Daily at 2:00 AM UTC
-    default_status=DefaultSensorStatus.RUNNING,
+    default_status=DefaultScheduleStatus.RUNNING,
     description="Daily pipeline execution at 2:00 AM UTC",
 )
 def daily_pipeline_schedule(context: ScheduleEvaluationContext):

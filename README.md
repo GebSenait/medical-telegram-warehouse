@@ -32,7 +32,6 @@
   - [Pipeline Design & DAG](#pipeline-design--dag)
   - [Execution Steps](#task-5-execution-steps)
   - [Monitoring Results & Insights](#task-5-monitoring-results--insights)
-- [Next Steps](#-next-steps)
 
 ---
 
@@ -58,7 +57,7 @@ The pipeline transforms raw Telegram data into a trusted analytical warehouse, e
          │ Extract
          ▼
 ┌─────────────────┐
-│  Raw Data Lake  │ ◄── Task-1 ✅
+│  Raw Data Lake  │
 │  (JSON Files)   │
 └────────┬────────┘
          │
@@ -72,26 +71,26 @@ The pipeline transforms raw Telegram data into a trusted analytical warehouse, e
          │ Transform
          ▼
 ┌─────────────────┐
-│   dbt Layer     │ ◄── Task-2 ✅
+│   dbt Layer     │
 │ (Star Schema)   │
 └────────┬────────┘
          │
          │ Enrich
          ▼
 ┌─────────────────┐
-│   YOLO Layer    │ ◄── Task-3 ✅
+│   YOLO Layer    │
 └────────┬────────┘
          │
          │ Expose
          ▼
 ┌─────────────────┐
-│   FastAPI       │ ◄── Task-4 ✅
+│   FastAPI       │
 └─────────────────┘
          │
          │ Orchestrate
          ▼
 ┌─────────────────┐
-│   Dagster       │ ◄── Task-5 ✅
+│   Dagster       │
 │  (Orchestration)│
 └─────────────────┘
 ```
@@ -337,22 +336,22 @@ medical-telegram-warehouse/
 ├── requirements.txt          # Python dependencies
 ├── README.md                 # This file
 │
-├── api/                      # Task-4: FastAPI Analytical API
+├── api/
 │   ├── main.py              # FastAPI app & routes
 │   ├── database.py          # DB engine/session
 │   ├── schemas.py           # Pydantic models
 │   └── __init__.py
 │
-├── src/                      # Task-1 & Task-3: Data Processing
+├── src/                      # Data Processing
 │   ├── scraper.py
 │   ├── yolo_detect.py
 │   └── __init__.py
 │
-├── scripts/                  # Task-2 & Task-3: Data Loading
+├── scripts/                  # Data Loading
 │   ├── load_raw_to_postgres.py
 │   └── load_yolo_to_postgres.py
 │
-├── models/                   # Task-2 & Task-3: dbt Models
+├── models/                   # dbt Models
 │   ├── staging/
 │   │   ├── stg_telegram_messages.sql
 │   │   ├── schema.yml
@@ -365,24 +364,24 @@ medical-telegram-warehouse/
 │       ├── schema.yml
 │       └── _models.yml
 │
-├── tests/                    # Task-2: Custom Tests
+├── tests/                    # Custom Tests
 │   ├── test_no_future_dated_messages.sql
 │   └── test_no_negative_views.sql
 │
-├── macros/                   # Task-2: dbt Macros
+├── macros/                   # dbt Macros
 │   └── surrogate_key.sql
 │
-├── dbt_project.yml           # Task-2: dbt Configuration
-├── profiles.yml              # Task-2: dbt Profiles (not committed)
+├── dbt_project.yml           # dbt Configuration
+├── profiles.yml              # dbt Profiles
 │
-├── data/                     # Task-1 & Task-3: Raw Data Lake
+├── data/                     # Raw Data Lake
 │   └── raw/
 │       ├── telegram_messages/
 │       ├── images/
 │       └── processed/
 │           └── yolo_detections.csv
 │
-└── logs/                     # Task-1: Execution Logs
+└── logs/                     # Execution Logs
 ```
 
 ---
@@ -907,32 +906,32 @@ Task-5 transforms all prior tasks into a **single automated production workflow*
 
 ```
 ┌─────────────────────────┐
-│ scrape_telegram_data    │ ◄── Task-1: Extract
+│ scrape_telegram_data    │ Extract
 └───────────┬─────────────┘
             │
             ▼
 ┌─────────────────────────┐
-│ load_raw_to_postgres    │ ◄── Task-2: Load Raw
+│ load_raw_to_postgres    │ ◄── Load Raw
 └───────────┬─────────────┘
             │
             ▼
 ┌─────────────────────────┐
-│ run_dbt_transformations  │ ◄── Task-2: Transform
+│ run_dbt_transformations  │ ◄── Transform
 └───────────┬─────────────┘
             │
             ▼
 ┌─────────────────────────┐
-│ run_yolo_enrichment     │ ◄── Task-3: YOLO Detection
+│ run_yolo_enrichment     │ ◄── YOLO Detection
 └───────────┬─────────────┘
             │
             ▼
 ┌─────────────────────────┐
-│ load_yolo_to_postgres   │ ◄── Task-3: Load YOLO
+│ load_yolo_to_postgres   │ ◄── Load YOLO
 └───────────┬─────────────┘
             │
             ▼
 ┌─────────────────────────┐
-│ run_dbt_yolo_model      │ ◄── Task-3: Enrich Fact
+│ run_dbt_yolo_model      │ ◄── Enrich Fact
 └─────────────────────────┘
 ```
 
@@ -1027,18 +1026,6 @@ Open browser: [http://localhost:3000](http://localhost:3000)
 **Full Documentation**: See [Pipeline Documentation](docs/task-5-pipeline-documentation.md)
 
 ---
-
-## 📝 Next Steps
-
-1. **Enhanced Monitoring**:
-   - Integrate with monitoring tools (Datadog, Prometheus)
-   - Set up alerting for pipeline failures
-   - Create dashboards for pipeline metrics
-
-2. **Real-time Dashboards**:
-   - Connect BI tools to FastAPI endpoints
-   - Build interactive dashboards
-   - Set up data freshness monitoring
 
 ---
 
