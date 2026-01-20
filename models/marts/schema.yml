@@ -110,3 +110,51 @@ models:
         description: "Boolean: message has downloadable image"
       - name: image_path
         description: "Path to image file"
+
+  - name: fct_image_detections
+    description: |
+      Fact table for YOLO object detection results enriched with message engagement metrics.
+      **Grain**: One row per image detection result (links to fct_messages).
+      **Use Cases**:
+      - Image content analysis and classification
+      - Engagement correlation with image types
+      - Channel visual content strategy analysis
+      - Object detection insights for medical commerce
+    columns:
+      - name: message_id
+        description: "Foreign key to fct_messages (business key)"
+        tests:
+          - not_null
+          - relationships:
+              to: ref('fct_messages')
+              field: message_id
+      - name: channel_key
+        description: "Foreign key to dim_channels"
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_channels')
+              field: channel_key
+      - name: date_key
+        description: "Foreign key to dim_dates"
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_dates')
+              field: date_key
+      - name: detected_class
+        description: "Primary detected object class name (e.g., 'person', 'bottle')"
+      - name: confidence_score
+        description: "Confidence score of detection (0.0-1.0)"
+      - name: image_category
+        description: "Image classification: promotional (person+product), product_display (product only), lifestyle (person only), other"
+      - name: num_detections
+        description: "Total number of objects detected in image"
+      - name: views
+        description: "Number of views for the message (from fct_messages)"
+      - name: forwards
+        description: "Number of forwards for the message (from fct_messages)"
+      - name: image_path
+        description: "Path to the analyzed image file"
+      - name: has_image
+        description: "Boolean flag indicating image exists (from fct_messages)"

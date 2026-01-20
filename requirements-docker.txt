@@ -1,18 +1,8 @@
 # ============================================================================
-# Python Environment Setup & Installation Instructions
+# Docker-Optimized Requirements
 # ============================================================================
-#
-# 1. Create Virtual Environment:
-#    Windows:  python -m venv venv
-#    Linux/Mac: python3 -m venv venv
-#
-# 2. Activate Virtual Environment:
-#    Windows:  venv\Scripts\activate
-#    Linux/Mac: source venv/bin/activate
-#
-# 3. Install Dependencies:
-#    pip install -r requirements.txt
-#
+# This file is for Docker builds - uses CPU-only PyTorch to reduce image size
+# For local development, use requirements.txt
 # ============================================================================
 
 # Core Telegram Library
@@ -36,7 +26,9 @@ psycopg2-binary==2.9.9
 # dbt
 dbt-postgres==1.7.15
 
-# Computer Vision
+# Computer Vision (Task-3)
+# Note: PyTorch CPU-only is installed separately in Dockerfile
+# to reduce image size (~500MB vs ~3GB+ with CUDA)
 ultralytics==8.1.0
 pillow==10.2.0
 pandas==2.2.0

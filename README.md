@@ -18,6 +18,10 @@
   - [Implementation Details](#task-2-implementation-details)
   - [Star Schema Design Decisions](#star-schema-design-decisions)
   - [Results & Insights](#task-2-results--insights)
+- [Task 3: Data Enrichment with Object Detection (YOLO)](#-task-3-data-enrichment-with-object-detection-yolo)
+  - [Implementation Details](#task-3-implementation-details)
+  - [Analysis & Insights](#task-3-analysis--insights)
+  - [Results & Limitations](#task-3-results--limitations)
 - [Next Steps](#-next-steps)
 
 ---
@@ -65,7 +69,7 @@ The pipeline transforms raw Telegram data into a trusted analytical warehouse, e
          │ Enrich
          ▼
 ┌─────────────────┐
-│   YOLO Layer    │ ◄── Future Task
+│   YOLO Layer    │ ◄── Task-3 ✅
 └────────┬────────┘
          │
          │ Expose
@@ -316,14 +320,16 @@ medical-telegram-warehouse/
 ├── requirements.txt          # Python dependencies
 ├── README.md                 # This file
 │
-├── src/                      # Task-1: Data Scraping
+├── src/                      # Task-1 & Task-3: Data Processing
 │   ├── scraper.py
+│   ├── yolo_detect.py
 │   └── __init__.py
 │
-├── scripts/                  # Task-2: Data Loading
-│   └── load_raw_to_postgres.py
+├── scripts/                  # Task-2 & Task-3: Data Loading
+│   ├── load_raw_to_postgres.py
+│   └── load_yolo_to_postgres.py
 │
-├── models/                   # Task-2: dbt Models
+├── models/                   # Task-2 & Task-3: dbt Models
 │   ├── staging/
 │   │   ├── stg_telegram_messages.sql
 │   │   ├── schema.yml
@@ -332,6 +338,7 @@ medical-telegram-warehouse/
 │       ├── dim_channels.sql
 │       ├── dim_dates.sql
 │       ├── fct_messages.sql
+│       ├── fct_image_detections.sql
 │       ├── schema.yml
 │       └── _models.yml
 │
@@ -345,10 +352,12 @@ medical-telegram-warehouse/
 ├── dbt_project.yml           # Task-2: dbt Configuration
 ├── profiles.yml              # Task-2: dbt Profiles (not committed)
 │
-├── data/                     # Task-1: Raw Data Lake
+├── data/                     # Task-1 & Task-3: Raw Data Lake
 │   └── raw/
 │       ├── telegram_messages/
-│       └── images/
+│       ├── images/
+│       └── processed/
+│           └── yolo_detections.csv
 │
 └── logs/                     # Task-1: Execution Logs
 ```
@@ -451,13 +460,173 @@ docker-compose up -d postgres
 
 ---
 
+## 🖼️ Task 3: Full Documentation
+
+### Environment Variables
+
+```env
+# YOLO Configuration
+YOLO_MODEL=yolov8n.pt
+YOLO_CONFIDENCE_THRESHOLD=0.25
+YOLO_OUTPUT_CSV=data/processed/yolo_detections.csv
+DATA_RAW_IMAGES=data/raw/images
+```
+
+### Execution Steps
+
+1. **Run YOLO Detection:**
+   ```bash
+   python -m src.yolo_detect
+   ```
+
+2. **Load Detection Results:**
+   ```bash
+   python scripts/load_yolo_to_postgres.py
+   ```
+
+3. **Run dbt Models:**
+   ```bash
+   dbt run --select fct_image_detections
+   ```
+
+4. **Run Tests:**
+   ```bash
+   dbt test --select fct_image_detections
+   ```
+
+### Validation Checklist
+
+- [x] YOLO model loads successfully
+- [x] Detection script processes images
+- [x] CSV output created with detection results
+- [x] Data loaded into `raw.yolo_detections`
+- [x] dbt model `fct_image_detections` created
+- [x] Foreign key relationships validated
+- [x] Schema tests passing
+- [x] Analysis documentation complete
+- [x] README updated with Task-3 section
+
+---
+
+## 🖼️ Task 3: Data Enrichment with Object Detection (YOLO)
+
+**Status**: ✅ Complete
+**Branch**: `task-3-dev`
+**Implementation**: [See below](#task-3-implementation-details)
+
+### Task-3 Implementation Details
+
+Task-3 enriches the analytical warehouse with **visual intelligence** using YOLOv8 object detection. This adds image-derived features that help answer critical business questions about visual content strategy and engagement patterns.
+
+**Components:**
+
+1. **YOLO Detection Script** (`src/yolo_detect.py`)
+   - Uses YOLOv8 nano model (`yolov8n.pt`) for performance on laptops
+   - Scans `data/raw/images/` directory recursively
+   - Runs object detection on each image
+   - Classifies images into categories:
+     - **promotional**: person + product detected
+     - **product_display**: product only
+     - **lifestyle**: person only
+     - **other**: no relevant objects detected
+   - Outputs CSV with detection results
+
+2. **Data Loading** (`scripts/load_yolo_to_postgres.py`)
+   - Loads YOLO detection CSV into PostgreSQL `raw.yolo_detections` table
+   - Supports upsert (idempotent loading)
+   - Creates indexes for performance
+
+3. **dbt Integration** (`models/marts/fct_image_detections.sql`)
+   - Joins YOLO detections with `fct_messages`
+   - Enriches with engagement metrics (views, forwards)
+   - Links to dimensions (channel_key, date_key)
+   - Provides unified view for image content analysis
+
+**Image Classification Logic:**
+
+The classification uses detected object classes from YOLO's COCO dataset:
+- **Person detection** (class 0): Indicates human presence
+- **Product detection** (classes 39-79): Common product-related objects (bottles, cups, etc.)
+- **Combination logic**: Determines image category based on presence of person and/or product
+
+**Model Choice: YOLOv8 Nano**
+
+- **Performance**: Fast inference on CPU/laptop hardware
+- **Accuracy**: Reasonable for common object detection tasks
+- **Trade-off**: Optimized for speed over maximum accuracy
+- **Use Case**: Production-grade enrichment layer for analytics
+
+### Task-3 Analysis & Insights
+
+**Business Questions Answered:**
+
+1. **Which channels rely more on visuals?**
+   - Analysis available in `fct_image_detections` grouped by `channel_key`
+   - Compare `num_detections` and `image_category` distribution across channels
+
+2. **Do images with people drive more engagement?**
+   - Compare `views` and `forwards` by `image_category`
+   - Promotional images (person + product) vs. product-only images
+
+3. **What are the limitations of generic CV models?**
+   - YOLOv8 is trained on COCO dataset (general objects)
+   - Medical/pharmaceutical products may not be in COCO classes
+   - Domain-specific fine-tuning would improve accuracy
+
+**Full Analysis**: See [Task-3 Analysis Document](docs/task-3-analysis.md)
+
+### Task-3 Results & Limitations
+
+**Deliverables:**
+- ✅ `src/yolo_detect.py` - YOLO detection script
+- ✅ `scripts/load_yolo_to_postgres.py` - Data loader
+- ✅ `models/marts/fct_image_detections.sql` - dbt enrichment model
+- ✅ YOLO detection results CSV
+- ✅ Analysis documentation
+
+**Execution Steps:**
+
+```bash
+# 1. Install dependencies
+pip install -r requirements.txt
+
+# 2. Run YOLO detection on images
+python -m src.yolo_detect
+
+# 3. Load detection results into PostgreSQL
+python scripts/load_yolo_to_postgres.py
+
+# 4. Run dbt models
+dbt run --select fct_image_detections
+
+# 5. Run tests
+dbt test --select fct_image_detections
+```
+
+**Limitations & Future Improvements:**
+
+1. **Generic Model Limitations**:
+   - YOLOv8 trained on COCO (80 classes) - may miss medical-specific products
+   - Confidence scores may be lower for domain-specific objects
+   - Solution: Fine-tune on medical product dataset
+
+2. **Classification Logic**:
+   - Current logic uses simple heuristics (person + product)
+   - Could be enhanced with ML-based image classification
+   - Solution: Train custom classifier on labeled medical commerce images
+
+3. **Performance**:
+   - Processing time scales with number of images
+   - Consider batch processing or GPU acceleration for large datasets
+   - Solution: Implement parallel processing or GPU inference
+
+**Full Documentation**: [Task-3 Analysis](docs/task-3-analysis.md)
+
+---
+
 ## 📝 Next Steps
 
-1. **Task-3**: Enrich with YOLO
-   - Image analysis for medical products
-   - Object detection and classification
-
-2. **Task-4**: Expose via FastAPI
+1. **Task-4**: Expose via FastAPI
    - REST API for analytics
    - Real-time dashboards
    - Fraud detection endpoints
@@ -479,6 +648,11 @@ docker-compose up -d postgres
 - **psycopg2**: PostgreSQL adapter
 - **Docker Compose**: PostgreSQL service
 
+### Task-3 (Enrich)
+- **YOLOv8**: 8.1.0 (ultralytics)
+- **Pillow**: 10.2.0 (image processing)
+- **Pandas**: 2.2.0 (data processing)
+
 ---
 
 ## 📄 License & Credits
@@ -486,7 +660,7 @@ docker-compose up -d postgres
 **Project**: Medical Telegram Warehouse
 **Organization**: Kara Solutions (Ethiopia)
 **Architecture**: Modern ELT Pipeline
-**Status**: Task-1 ✅ | Task-2 ✅ | Task-3 ⏳ | Task-4 ⏳
+**Status**: Task-1 ✅ | Task-2 ✅ | Task-3 ✅ | Task-4 ⏳
 
 ---
 

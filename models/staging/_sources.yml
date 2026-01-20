@@ -26,3 +26,20 @@ sources:
             description: "Relative path to downloaded image file"
           - name: raw_data
             description: "Complete raw message data stored as JSONB"
+      - name: yolo_detections
+        description: "YOLO object detection results from Task-3"
+        columns:
+          - name: message_id
+            description: "Telegram message ID (links to fct_messages)"
+          - name: channel_name
+            description: "Name of the Telegram channel"
+          - name: image_path
+            description: "Path to the analyzed image file"
+          - name: detected_class
+            description: "Primary detected object class name"
+          - name: confidence_score
+            description: "Confidence score of detection (0.0-1.0)"
+          - name: image_category
+            description: "Image classification: promotional, product_display, lifestyle, other"
+          - name: num_detections
+            description: "Total number of objects detected in image"
