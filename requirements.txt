@@ -40,3 +40,10 @@ dbt-postgres==1.7.15
 ultralytics==8.1.0
 pillow==10.2.0
 pandas==2.2.0
+
+# FastAPI & API Dependencies
+fastapi==0.109.0
+uvicorn[standard]==0.27.0
+sqlalchemy==2.0.25
+pydantic==2.5.3
+pydantic-settings==2.1.0
