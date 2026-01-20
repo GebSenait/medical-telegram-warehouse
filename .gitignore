@@ -45,6 +45,7 @@ data/raw/telegram_messages/**/*.json
 data/raw/images/**/*.jpg
 data/raw/images/**/*.png
 data/raw/images/**/*.jpeg
+data/processed/**/*
 
 # Logs
 logs/*.log
