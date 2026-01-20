@@ -1,0 +1,34 @@
+# ============================================================================
+# Docker-Optimized Requirements
+# ============================================================================
+# This file is for Docker builds - uses CPU-only PyTorch to reduce image size
+# For local development, use requirements.txt
+# ============================================================================
+
+# Core Telegram Library
+telethon==1.34.0
+
+# Data Processing
+python-dotenv==1.0.0
+
+# Async File I/O
+aiofiles==23.2.1
+
+# Utilities
+python-dateutil==2.8.2
+
+# Async HTTP (included with Telethon but explicit for clarity)
+aiohttp==3.9.1
+
+# Database
+psycopg2-binary==2.9.9
+
+# dbt
+dbt-postgres==1.7.15
+
+# Computer Vision (Task-3)
+# Note: PyTorch CPU-only is installed separately in Dockerfile
+# to reduce image size (~500MB vs ~3GB+ with CUDA)
+ultralytics==8.1.0
+pillow==10.2.0
+pandas==2.2.0

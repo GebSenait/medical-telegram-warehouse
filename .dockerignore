@@ -28,6 +28,17 @@ env/
 # Data (don't copy into image, use volumes)
 data/
 logs/
+*.pt
+yolov8*.pt
+
+# dbt (not needed in Docker image)
+target/
+dbt_packages/
+models/
+macros/
+tests/
+dbt_project.yml
+packages.yml
 
 # Environment (will be provided via docker-compose or COPY)
 .env.local
@@ -35,4 +46,3 @@ logs/
 # OS
 .DS_Store
 Thumbs.db
-
