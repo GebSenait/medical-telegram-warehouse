@@ -22,6 +22,11 @@
   - [Implementation Details](#task-3-implementation-details)
   - [Analysis & Insights](#task-3-analysis--insights)
   - [Results & Limitations](#task-3-results--limitations)
+- [Task 4: Analytical API (FastAPI)](#-task-4-analytical-api-fastapi)
+  - [Implementation Details](#task-4-implementation-details)
+  - [API Endpoints](#api-endpoints)
+  - [Query Logic & Analysis](#query-logic--analysis)
+  - [Results & Insights](#task-4-results--insights)
 - [Next Steps](#-next-steps)
 
 ---
@@ -75,7 +80,7 @@ The pipeline transforms raw Telegram data into a trusted analytical warehouse, e
          │ Expose
          ▼
 ┌─────────────────┐
-│   FastAPI       │ ◄── Future Task
+│   FastAPI       │ ◄── Task-4 ✅
 └─────────────────┘
 ```
 
@@ -319,6 +324,12 @@ medical-telegram-warehouse/
 ├── docker-compose.yml        # PostgreSQL + Telegram scraper services
 ├── requirements.txt          # Python dependencies
 ├── README.md                 # This file
+│
+├── api/                      # Task-4: FastAPI Analytical API
+│   ├── main.py              # FastAPI app & routes
+│   ├── database.py          # DB engine/session
+│   ├── schemas.py           # Pydantic models
+│   └── __init__.py
 │
 ├── src/                      # Task-1 & Task-3: Data Processing
 │   ├── scraper.py
@@ -624,12 +635,229 @@ dbt test --select fct_image_detections
 
 ---
 
+## 🚀 Task 4: Analytical API (FastAPI)
+
+**Status**: ✅ Complete
+**Branch**: `task-4-dev`
+**Implementation**: [See below](#task-4-implementation-details)
+
+### Task-4 Implementation Details
+
+Task-4 exposes the **dbt data marts** through a **FastAPI REST API** that answers key business questions clearly, safely, and efficiently. This API layer enables decision-makers to access trusted analytical insights from Telegram data.
+
+**Components:**
+
+1. **FastAPI Application** (`api/main.py`)
+   - Production-ready REST API with auto-generated OpenAPI documentation
+   - 4 analytical endpoints querying dbt marts
+   - Comprehensive error handling and validation
+   - Health check and database connectivity verification
+
+2. **Database Connection Layer** (`api/database.py`)
+   - SQLAlchemy engine and session management
+   - Connection pooling for performance
+   - Environment-based configuration via `.env`
+
+3. **Pydantic Schemas** (`api/schemas.py`)
+   - Type-safe request/response models
+   - Clear API contracts with examples
+   - Validation and serialization
+
+**API Architecture:**
+
+```
+┌─────────────────┐
+│   FastAPI App   │
+│  (api/main.py)  │
+└────────┬────────┘
+         │
+         │ SQLAlchemy
+         ▼
+┌─────────────────┐
+│   PostgreSQL    │
+│  (dbt marts)    │
+│  - dim_channels │
+│  - dim_dates    │
+│  - fct_messages │
+│  - fct_image_   │
+│    detections   │
+└─────────────────┘
+```
+
+### API Endpoints
+
+#### 1. **Top Products** - `GET /api/reports/top-products`
+
+**Business Question**: What are the most frequently mentioned products/terms across all channels?
+
+**Query Logic**:
+- Extracts terms from `message_text` using PostgreSQL text functions
+- Aggregates by term (case-insensitive)
+- Ranks by mention count
+- Includes engagement metrics (views, forwards) per term
+- Filters out very short words and pure numbers
+
+**Parameters**:
+- `limit` (default: 10, max: 100): Number of top products to return
+- `min_mentions` (default: 1): Minimum mention count threshold
+
+**Response**: List of top products with mention counts, engagement metrics, and channels
+
+**Example**:
+```bash
+GET /api/reports/top-products?limit=10&min_mentions=5
+```
+
+#### 2. **Channel Activity** - `GET /api/channels/{channel_name}/activity`
+
+**Business Question**: What are the posting volume and engagement trends for a specific channel?
+
+**Query Logic**:
+- Joins `fct_messages` with `dim_dates` and `dim_channels`
+- Groups messages by day or week
+- Calculates message counts, total views/forwards
+- Computes average engagement per message
+- Supports configurable date range
+
+**Parameters**:
+- `channel_name` (path): Name of the Telegram channel
+- `period` (query, default: "daily"): Aggregation period - "daily" or "weekly"
+- `days_back` (query, default: 30): Number of days to look back (1-365)
+
+**Response**: Activity trends by period with engagement metrics
+
+**Example**:
+```bash
+GET /api/channels/CheMed/activity?period=daily&days_back=30
+```
+
+#### 3. **Message Search** - `GET /api/search/messages`
+
+**Business Question**: Find specific products, medications, or topics mentioned across channels.
+
+**Query Logic**:
+- Full-text search in `message_text` (case-insensitive LIKE)
+- Joins with `dim_channels` for channel names
+- Supports optional channel filtering
+- Returns matching messages with engagement metrics
+- Orders by timestamp (most recent first)
+
+**Parameters**:
+- `query` (required): Search keyword
+- `limit` (default: 20, max: 100): Maximum number of results
+- `channel_name` (optional): Filter by channel name
+
+**Response**: Matching messages with metadata
+
+**Example**:
+```bash
+GET /api/search/messages?query=paracetamol&limit=20&channel_name=CheMed
+```
+
+#### 4. **Visual Content Stats** - `GET /api/reports/visual-content`
+
+**Business Question**: What are the image usage patterns and YOLO object detection insights?
+
+**Query Logic**:
+- Aggregates data from `fct_image_detections`
+- Groups by image category and detected class
+- Calculates total images, detections, averages
+- Computes engagement metrics by category
+- Identifies top detected object classes
+
+**Response**: Comprehensive visual content statistics
+
+**Example**:
+```bash
+GET /api/reports/visual-content
+```
+
+### Query Logic & Analysis
+
+**Design Principles**:
+
+1. **Query dbt Marts Only**: All endpoints query the `marts` schema (star schema), not raw data
+2. **Efficient Joins**: Leverages foreign keys (channel_key, date_key) for fast joins
+3. **Aggregation at Database**: Heavy lifting done in PostgreSQL, not Python
+4. **Type Safety**: Pydantic schemas ensure type-safe request/response handling
+5. **Error Handling**: Graceful handling of missing data, invalid inputs, database errors
+
+**Performance Considerations**:
+
+- Connection pooling via SQLAlchemy (pool_size=5, max_overflow=10)
+- Indexed foreign keys in fact tables for fast joins
+- Text search uses PostgreSQL native functions (no external search engine needed)
+- Pagination via LIMIT to prevent large result sets
+
+**Security**:
+
+- No SQL injection risk (parameterized queries via SQLAlchemy)
+- Input validation via Pydantic and FastAPI Query parameters
+- Environment-based credentials (never hardcoded)
+
+### Task-4 Results & Insights
+
+**Deliverables:**
+- ✅ `api/main.py` - FastAPI application with 4 endpoints
+- ✅ `api/database.py` - Database connection layer
+- ✅ `api/schemas.py` - Pydantic request/response models
+- ✅ `requirements.txt` - Updated with FastAPI dependencies
+- ✅ Auto-generated OpenAPI documentation at `/docs`
+- ✅ Health check endpoint at `/health`
+- ✅ Comprehensive error handling
+
+**Execution Steps:**
+
+```bash
+# 1. Install dependencies
+pip install -r requirements.txt
+
+# 2. Ensure PostgreSQL is running and dbt marts exist
+docker-compose up -d postgres
+dbt run
+
+# 3. Start FastAPI server
+uvicorn api.main:app --reload --host 0.0.0.0 --port 8000
+
+# 4. Access API documentation
+# Open browser: http://localhost:8000/docs
+```
+
+**API Documentation:**
+
+- **Swagger UI**: `http://localhost:8000/docs`
+- **ReDoc**: `http://localhost:8000/redoc`
+- **OpenAPI JSON**: `http://localhost:8000/openapi.json`
+
+**Validation Checklist:**
+
+- [x] FastAPI application starts without errors
+- [x] Database connection verified on startup
+- [x] All 4 endpoints implemented and functional
+- [x] Pydantic schemas validate requests/responses
+- [x] Error handling for missing data and invalid inputs
+- [x] OpenAPI documentation auto-generated
+- [x] Health check endpoint working
+- [x] README updated with Task-4 documentation
+
+**Business Value:**
+
+1. **Decision-Making**: Executives can query top products, channel activity, and trends via REST API
+2. **Integration Ready**: API can be consumed by dashboards, BI tools, or other applications
+3. **Real-Time Insights**: Fast queries on pre-aggregated dbt marts (no raw data scanning)
+4. **Scalable**: Connection pooling and efficient queries support concurrent users
+5. **Trusted Data**: Only queries validated dbt marts (star schema), ensuring data quality
+
+**Full Documentation**: See API documentation at `/docs` endpoint
+
+---
+
 ## 📝 Next Steps
 
-1. **Task-4**: Expose via FastAPI
-   - REST API for analytics
-   - Real-time dashboards
-   - Fraud detection endpoints
+1. **Task-5** (Future): Real-time dashboards
+   - Connect BI tools to FastAPI endpoints
+   - Build interactive dashboards
+   - Set up monitoring and alerting
 
 ---
 
@@ -653,6 +881,12 @@ dbt test --select fct_image_detections
 - **Pillow**: 10.2.0 (image processing)
 - **Pandas**: 2.2.0 (data processing)
 
+### Task-4 (Expose)
+- **FastAPI**: 0.109.0 (REST API framework)
+- **Uvicorn**: 0.27.0 (ASGI server)
+- **SQLAlchemy**: 2.0.25 (ORM and database toolkit)
+- **Pydantic**: 2.5.3 (data validation)
+
 ---
 
 ## 📄 License & Credits
@@ -660,7 +894,7 @@ dbt test --select fct_image_detections
 **Project**: Medical Telegram Warehouse
 **Organization**: Kara Solutions (Ethiopia)
 **Architecture**: Modern ELT Pipeline
-**Status**: Task-1 ✅ | Task-2 ✅ | Task-3 ✅ | Task-4 ⏳
+**Status**: Task-1 ✅ | Task-2 ✅ | Task-3 ✅ | Task-4 ✅
 
 ---
 
